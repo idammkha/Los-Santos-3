@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import GameCanvas from './components/3d/GameCanvas';
-import PowerButtonOverlay from './components/ui/PowerButtonOverlay';
+import BootStatusOverlay from './components/ui/BootStatusOverlay';
 import HUD from './components/ui/HUD';
-import ComponentDialog from './components/ui/ComponentDialog';
+import CinematicHUDCard from './components/ui/CinematicHUDCard';
+import TourCompletedCard from './components/ui/TourCompletedCard';
 import InstructionCycleUI from './components/ui/InstructionCycleUI';
 import QuizModal from './components/ui/QuizModal';
 import AcademicGuideModal from './components/ui/AcademicGuideModal';
-import ControlsGuide from './components/ui/ControlsGuide';
+import SignalTelemetryPanel from './components/ui/SignalTelemetryPanel';
 import {
   HARDWARE_STAGES,
   MOTHERBOARD_CHECKPOINTS,
@@ -15,111 +16,240 @@ import {
 import { sound } from './audio/SoundEffects';
 
 export default function App() {
-  // Status Game & Aliran Daya
+  // 1. Status Utama Sistem & Aliran Listrik
   const [stage, setStage] = useState(HARDWARE_STAGES.POWER_OFF);
   const [isPowered, setIsPowered] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isCaseExploding, setIsCaseExploding] = useState(false);
+  const [bootProgress, setBootProgress] = useState(0);
 
-  // Status Karakter Elektron (VOLT)
+  // 2. Status Karakter Elektron (VOLT)
   const [characterPos, setCharacterPos] = useState([0, 0.4, 18]);
+  const characterPosRef = useRef(characterPos);
   const [characterRotation, setCharacterRotation] = useState([0, Math.PI, 0]);
   const [isMoving, setIsMoving] = useState(false);
   const [isAutoCruising, setIsAutoCruising] = useState(true);
 
-  // Checkpoints & Komponen Aktif
-  const [currentCpIndex, setCurrentCpIndex] = useState(0);
+  // 3. Status Tur Otomatis & Diam 3 Detik (3-Second Dwell)
+  const [isDwelling, setIsDwelling] = useState(false);
+  const [dwellingComponent, setDwellingComponent] = useState(null);
+  const [isDwellPaused, setIsDwellPaused] = useState(false);
+  const [screenPulse, setScreenPulse] = useState(0);
+  const [screenShake, setScreenShake] = useState(0);
+
+  // Indeks Perjalanan Komponen
+  const [currentCpIndex, setCurrentCpIndex] = useState(0); // 0..4 di Motherboard
+  const [currentCpuIndex, setCurrentCpuIndex] = useState(0); // 0..4 di Inti CPU
   const [activeCheckpoint, setActiveCheckpoint] = useState('front_panel');
   const [activeComponent, setActiveComponent] = useState(null);
-  const [selectedDialogComponent, setSelectedDialogComponent] = useState(null);
 
-  // Modals & Simulasi
+  // 4. Modal & Fitur Akademis Tambahan
+  const [showTourCompleted, setShowTourCompleted] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showCycleSim, setShowCycleSim] = useState(false);
   const [currentCycleStep, setCurrentCycleStep] = useState(1);
   const [isExecuting, setIsExecuting] = useState(false);
 
-  // Keyboard Keys Tracker
+  // Ref untuk Pelacak Tombol Keyboard & Transisi
   const keysPressed = useRef({});
-  const hasShownDialogForCp = useRef(-1);
+  const isTransitioningRef = useRef(false);
+  const movementVelocityRef = useRef([0, 0]);
+  const cameraMoveRef = useRef({ forward: [0, -1], right: [1, 0] });
 
-  // 1. Handler Tombol Power ON (Memulai Aliran Arus)
+  const updateCharacterPosition = useCallback((nextPosition) => {
+    characterPosRef.current = nextPosition;
+    setCharacterPos(nextPosition);
+  }, []);
+
+  const triggerScenePulse = useCallback(() => {
+    setScreenPulse((prev) => prev + 1);
+    setScreenShake((prev) => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!screenPulse && !screenShake) return undefined;
+    const timeout = window.setTimeout(() => {
+      setScreenPulse(0);
+      setScreenShake(0);
+    }, 520);
+    return () => window.clearTimeout(timeout);
+  }, [screenPulse, screenShake]);
+
+  // Handler 1: Tombol Power Fisik Ditekan
+  const handleComputerPowerButton = () => {
+    if (isPowered || isCaseExploding) return;
+    sound.playPowerClick();
+    setBootProgress(18);
+    setIsCaseExploding(true);
+
+    window.setTimeout(() => setBootProgress(42), 280);
+    window.setTimeout(() => setBootProgress(76), 780);
+  };
+
   const handlePowerOn = () => {
+    triggerScenePulse();
+    setBootProgress(100);
     setIsPowered(true);
     setStage(HARDWARE_STAGES.PCB_JOURNEY);
     setIsAutoCruising(true);
     setCurrentCpIndex(0);
-    setCharacterPos([0, 0.4, 18]);
-    setActiveCheckpoint('front_panel');
-    hasShownDialogForCp.current = 0;
-
-    // Buka dialog penjelasan titik awal (Front Panel)
-    setTimeout(() => {
-      setSelectedDialogComponent(MOTHERBOARD_CHECKPOINTS[0]);
-    }, 900);
-  };
-
-  // 2. Reset Sistem ke Kondisi Mati
-  const handleResetPower = () => {
-    sound.stopAmbientHum();
-    setIsPowered(false);
-    setStage(HARDWARE_STAGES.POWER_OFF);
-    setCharacterPos([0, 0.4, 18]);
+    setCurrentCpuIndex(0);
+    updateCharacterPosition([0, 0.4, 18]);
     setCharacterRotation([0, Math.PI, 0]);
-    setCurrentCpIndex(0);
     setActiveCheckpoint('front_panel');
     setActiveComponent(null);
-    setSelectedDialogComponent(null);
+    setShowTourCompleted(false);
+
+    // Langsung diam 3 detik di Front Panel untuk menjelaskan pemicu daya awal
+    setTimeout(() => {
+      setIsDwelling(true);
+      setDwellingComponent(MOTHERBOARD_CHECKPOINTS[0]);
+    }, 600);
+  };
+
+  const handleCaseExplodeComplete = () => {
+    if (isPowered) return;
+    sound.playPowerSurge();
+    sound.startAmbientHum();
+    setIsCaseExploding(false);
+    handlePowerOn();
+  };
+
+  // Handler 2: Reset / Matikan Komputer
+  const handleResetPower = () => {
+    sound.stopAmbientHum();
+    movementVelocityRef.current = [0, 0];
+    setIsPowered(false);
+    setIsCaseExploding(false);
+    setBootProgress(0);
+    setStage(HARDWARE_STAGES.POWER_OFF);
+    updateCharacterPosition([0, 0.4, 18]);
+    setCharacterRotation([0, Math.PI, 0]);
+    setIsMoving(false);
+    setIsAutoCruising(true);
+    setIsDwelling(false);
+    setDwellingComponent(null);
+    setCurrentCpIndex(0);
+    setCurrentCpuIndex(0);
+    setActiveCheckpoint('front_panel');
+    setActiveComponent(null);
+    setShowTourCompleted(false);
     setShowCycleSim(false);
     setShowQuiz(false);
     setShowGuide(false);
-    hasShownDialogForCp.current = -1;
+    isTransitioningRef.current = false;
   };
 
-  // 3. Toggle Mute
+  // Handler 3: Toggle Audio Mute
   const handleToggleMute = () => {
     const muted = sound.toggleMute();
     setIsMuted(muted);
   };
 
-  // 4. Berpindah Scene (Motherboard <-> Inti CPU)
+  // Handler 4: Transisi Manual Antar Panggung (Motherboard <-> Inti CPU)
   const handleSwitchScene = () => {
     sound.playPowerSurge();
+    movementVelocityRef.current = [0, 0];
+    triggerScenePulse();
+    setIsAutoCruising(false);
+    setIsDwelling(false);
+    setDwellingComponent(null);
+    setIsMoving(false);
+
     if (stage === HARDWARE_STAGES.INSIDE_CPU || stage === HARDWARE_STAGES.CYCLE_SIMULATION) {
       // Kembali ke Motherboard
       setStage(HARDWARE_STAGES.PCB_JOURNEY);
-      setCharacterPos([0, 0.4, -1]);
+      updateCharacterPosition([0, 0.4, -1]);
       setActiveCheckpoint('socket');
       setActiveComponent(null);
-      setShowCycleSim(false);
+      setCurrentCpIndex(4);
     } else {
       // Masuk ke Inti Silikon CPU
       setStage(HARDWARE_STAGES.INSIDE_CPU);
-      setCharacterPos([0, 0.4, 0]);
-      setActiveComponent(CPU_COMPONENTS.find((c) => c.id === 'cu'));
-      setSelectedDialogComponent(CPU_COMPONENTS.find((c) => c.id === 'cu'));
+      const firstCpuComp = CPU_COMPONENTS[0];
+      updateCharacterPosition([firstCpuComp.roomPosition[0], firstCpuComp.roomPosition[1], firstCpuComp.roomPosition[2]]);
+      setActiveComponent(firstCpuComp);
+      setCurrentCpuIndex(0);
+      setIsDwelling(true);
+      setDwellingComponent(firstCpuComp);
     }
   };
 
-  // 5. Navigasi Antar Checkpoint di Motherboard
+  // Handler 5: Selesai Diam 3 Detik -> Otomatis Lanjut ke Komponen Berikutnya
+  const handleAutoAdvance = useCallback(() => {
+    triggerScenePulse();
+    setIsDwelling(false);
+    setDwellingComponent(null);
+
+    const isInsideCpu = stage === HARDWARE_STAGES.INSIDE_CPU;
+
+    if (!isInsideCpu) {
+      // Di Motherboard: Lanjut ke checkpoint berikutnya
+      if (currentCpIndex + 1 < MOTHERBOARD_CHECKPOINTS.length) {
+        setCurrentCpIndex((prev) => prev + 1);
+        setIsAutoCruising(true);
+      } else {
+        // Sudah melewati Socket CPU (Checkpoint terakhir di motherboard)
+        // -> OTOMATIS WARP / TRANSISI MASUK KE DALAM INTI SILIKON CPU!
+        isTransitioningRef.current = true;
+        sound.playPowerSurge();
+
+        setTimeout(() => {
+          setStage(HARDWARE_STAGES.INSIDE_CPU);
+          setCurrentCpuIndex(0);
+          const firstCpuComp = CPU_COMPONENTS[0];
+          updateCharacterPosition([firstCpuComp.roomPosition[0], firstCpuComp.roomPosition[1], firstCpuComp.roomPosition[2]]);
+          setActiveComponent(firstCpuComp);
+          isTransitioningRef.current = false;
+          setIsAutoCruising(true);
+
+          // Diam 3 detik di komponen pertama CPU (BIU)
+          setTimeout(() => {
+            setIsDwelling(true);
+            setDwellingComponent(firstCpuComp);
+          }, 350);
+        }, 800);
+      }
+    } else {
+      // Di Dalam Silikon CPU: Lanjut ke modul CPU berikutnya
+      if (currentCpuIndex + 1 < CPU_COMPONENTS.length) {
+        setCurrentCpuIndex((prev) => prev + 1);
+        setIsAutoCruising(true);
+      } else {
+        // Semua modul CPU selesai dijelajahi!
+        sound.playInteractionChime();
+        setIsAutoCruising(false);
+        setIsDwelling(false);
+        setDwellingComponent(null);
+        setShowTourCompleted(true);
+      }
+    }
+  }, [stage, currentCpIndex, currentCpuIndex, triggerScenePulse, updateCharacterPosition]);
+
+  // Handler 6: Loncat Langsung ke Checkpoint Motherboard Tertentu
   const handleSelectCheckpointIndex = (index) => {
     if (index >= 0 && index < MOTHERBOARD_CHECKPOINTS.length) {
       setCurrentCpIndex(index);
       const cp = MOTHERBOARD_CHECKPOINTS[index];
       setActiveCheckpoint(cp.id);
-      setCharacterPos([cp.position[0], 0.4, cp.position[2]]);
-      hasShownDialogForCp.current = index;
-      setSelectedDialogComponent(cp);
+      updateCharacterPosition([cp.position[0], 0.4, cp.position[2]]);
+      setIsDwelling(true);
+      setDwellingComponent(cp);
+      setIsMoving(false);
     }
   };
 
-  const handleNextCheckpoint = () => {
-    if (currentCpIndex + 1 < MOTHERBOARD_CHECKPOINTS.length) {
-      handleSelectCheckpointIndex(currentCpIndex + 1);
-    } else {
-      // Sampai di CPU Socket -> Langsung masuk ke dalam CPU
-      setSelectedDialogComponent(null);
-      handleSwitchScene();
+  // Handler 7: Loncat Langsung ke Modul CPU Tertentu
+  const handleSelectCpuIndex = (index) => {
+    if (index >= 0 && index < CPU_COMPONENTS.length) {
+      setCurrentCpuIndex(index);
+      const comp = CPU_COMPONENTS[index];
+      setActiveComponent(comp);
+      updateCharacterPosition([comp.roomPosition[0], comp.roomPosition[1], comp.roomPosition[2]]);
+      setIsDwelling(true);
+      setDwellingComponent(comp);
+      setIsMoving(false);
     }
   };
 
@@ -130,6 +260,7 @@ export default function App() {
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
         keysPressed.current[key] = true;
         setIsAutoCruising(false); // Ambil alih kendali manual
+        setIsDwelling(false); // Batalkan diam jika pengguna mulai berjalan bebas
       }
     };
 
@@ -146,114 +277,66 @@ export default function App() {
     };
   }, []);
 
-  // 7. Loop Gerakan Karakter (Manual WASD & Auto-Cruise)
-  useEffect(() => {
-    if (!isPowered) return;
-
-    const interval = setInterval(() => {
-      const isInsideCpu =
-        stage === HARDWARE_STAGES.INSIDE_CPU ||
-        stage === HARDWARE_STAGES.CYCLE_SIMULATION;
-
-      const keys = keysPressed.current;
-      const isManualMoving =
-        keys['w'] ||
-        keys['s'] ||
-        keys['a'] ||
-        keys['d'] ||
-        keys['arrowup'] ||
-        keys['arrowdown'] ||
-        keys['arrowleft'] ||
-        keys['arrowright'];
-
-      if (isManualMoving && !selectedDialogComponent && !showQuiz && !showGuide) {
-        setIsMoving(true);
-        const speed = 0.18;
-        let dx = 0;
-        let dz = 0;
-
-        if (keys['w'] || keys['arrowup']) dz -= speed;
-        if (keys['s'] || keys['arrowdown']) dz += speed;
-        if (keys['a'] || keys['arrowleft']) dx -= speed;
-        if (keys['d'] || keys['arrowright']) dx += speed;
-
-        setCharacterPos((prev) => {
-          let nx = prev[0] + dx;
-          let nz = prev[2] + dz;
-
-          // Batasi area gerak karakter
-          if (isInsideCpu) {
-            nx = Math.max(-12, Math.min(12, nx));
-            nz = Math.max(-10, Math.min(10, nz));
-          } else {
-            nx = Math.max(-4, Math.min(4, nx));
-            nz = Math.max(-2, Math.min(19, nz));
-          }
-
-          // Cek proximity ke komponen di dalam CPU
-          if (isInsideCpu) {
-            CPU_COMPONENTS.forEach((comp) => {
-              const dist = Math.hypot(nx - comp.roomPosition[0], nz - comp.roomPosition[2]);
-              if (dist < 2.0 && activeComponent?.id !== comp.id) {
-                setActiveComponent(comp);
-              }
-            });
-          }
-
-          return [nx, 0.4, nz];
-        });
-
-        // Hitung sudut rotasi menghadap arah gerak
-        if (dx !== 0 || dz !== 0) {
-          const angle = Math.atan2(dx, dz);
-          setCharacterRotation([0, angle, 0]);
-        }
-      } else if (isAutoCruising && !isInsideCpu && !selectedDialogComponent) {
-        // Mode Perjalanan Otomatis Mengikuti Jalur Arus Motherboard
-        const targetCp = MOTHERBOARD_CHECKPOINTS[currentCpIndex];
-        if (targetCp) {
-          const targetZ = targetCp.position[2];
-          setCharacterPos((prev) => {
-            const currentZ = prev[2];
-            const dist = Math.abs(currentZ - targetZ);
-
-            if (dist < 0.15) {
-              // Tiba di checkpoint!
-              setIsMoving(false);
-              if (hasShownDialogForCp.current !== currentCpIndex) {
-                hasShownDialogForCp.current = currentCpIndex;
-                setSelectedDialogComponent(targetCp);
-              }
-              return [0, 0.4, targetZ];
-            } else {
-              setIsMoving(true);
-              const dir = targetZ < currentZ ? -1 : 1;
-              const newZ = currentZ + dir * 0.12;
-              setCharacterRotation([0, dir < 0 ? Math.PI : 0, 0]);
-              return [0, 0.4, newZ];
-            }
-          });
-        }
-      } else {
-        setIsMoving(false);
-      }
-    }, 30);
-
-    return () => clearInterval(interval);
-  }, [
-    isPowered,
-    isAutoCruising,
-    currentCpIndex,
+  const movementControllerProps = {
     stage,
-    selectedDialogComponent,
+    isPowered,
+    isTransitioningRef,
+    keysPressed,
+    cameraMoveRef,
+    characterPosRef,
+    movementVelocityRef,
+    isAutoCruising,
+    isDwelling,
     showQuiz,
     showGuide,
+    currentCpIndex,
+    currentCpuIndex,
+    activeCheckpoint,
     activeComponent,
-  ]);
+    updateCharacterPosition,
+    setCharacterRotation,
+    setIsMoving,
+    setIsDwelling,
+    setDwellingComponent,
+    setActiveCheckpoint,
+    setActiveComponent,
+    setCurrentCpIndex,
+    setCurrentCpuIndex,
+  };
+
+  // Nama komponen berikutnya untuk pratinjau kartu HUD
+  const isInsideCpu = stage === HARDWARE_STAGES.INSIDE_CPU;
+  let nextComponentName = null;
+  if (!isInsideCpu) {
+    if (currentCpIndex + 1 < MOTHERBOARD_CHECKPOINTS.length) {
+      nextComponentName = MOTHERBOARD_CHECKPOINTS[currentCpIndex + 1].name;
+    } else {
+      nextComponentName = 'Masuk ke Inti Silikon CPU (BIU)';
+    }
+  } else {
+    if (currentCpuIndex + 1 < CPU_COMPONENTS.length) {
+      nextComponentName = CPU_COMPONENTS[currentCpuIndex + 1].name;
+    } else {
+      nextComponentName = 'Selesai Tur Silikon';
+    }
+  }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
-      {/* Kanvas Grafis 3D Interaktif */}
+    <main className="fixed inset-0 w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
+      {screenPulse > 0 && (
+        <div
+          key={`flash-${screenPulse}`}
+          className="scene-flash pointer-events-none absolute inset-0 z-40 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.28),rgba(14,165,233,0.12)_18%,transparent_58%)]"
+        />
+      )}
+
+      {screenShake > 0 && (
+        <div key={`shake-${screenShake}`} className="screen-shake pointer-events-none absolute inset-0 z-30" />
+      )}
+
+      {isPowered && <div className="game-scanlines pointer-events-none absolute inset-0 z-20" />}
+
+      {/* 1. Kanvas Grafis 3D Full Screen (100vw x 100vh) */}
       <GameCanvas
         stage={stage}
         isPowered={isPowered}
@@ -263,75 +346,116 @@ export default function App() {
         activeCheckpoint={activeCheckpoint}
         activeComponent={activeComponent}
         onSelectCheckpoint={(cp) => {
-          setSelectedDialogComponent(cp);
-          setActiveCheckpoint(cp.id);
+          const idx = MOTHERBOARD_CHECKPOINTS.findIndex((c) => c.id === cp.id);
+          if (idx !== -1) handleSelectCheckpointIndex(idx);
         }}
         onSelectComponent={(comp) => {
-          setSelectedDialogComponent(comp);
-          setActiveComponent(comp);
+          const idx = CPU_COMPONENTS.findIndex((c) => c.id === comp.id);
+          if (idx !== -1) handleSelectCpuIndex(idx);
         }}
         currentCycleStep={currentCycleStep}
         isExecuting={isExecuting}
+        isExploding={isCaseExploding}
+        onPowerButtonPressed={handleComputerPowerButton}
+        onExplodeComplete={handleCaseExplodeComplete}
+        cameraMoveRef={cameraMoveRef}
+        movementControllerProps={movementControllerProps}
       />
 
-      {/* Layar Awal: Tombol Power Fisik Casing PC */}
-      {!isPowered && <PowerButtonOverlay onPowerOn={handlePowerOn} />}
+      {/* 2. Layar Awal: Casing Komputer & Tombol Power Nyata */}
+      {!isPowered && <BootStatusOverlay isExploding={isCaseExploding} bootProgress={bootProgress} />}
 
-      {/* HUD Telemetri & Kontrol Navigasi Utama */}
+      {/* 3. HUD Telemetri & Kontrol Navigasi Utama */}
       {isPowered && (
-        <HUD
-          stage={stage}
-          isPowered={isPowered}
-          isMuted={isMuted}
-          onToggleMute={handleToggleMute}
+        <>
+          <HUD
+            stage={stage}
+            isPowered={isPowered}
+            isMuted={isMuted}
+            onToggleMute={handleToggleMute}
+            isAutoCruising={isAutoCruising}
+            onToggleAutoCruise={() => setIsAutoCruising((prev) => !prev)}
+            onSwitchScene={handleSwitchScene}
+            onOpenGuide={() => setShowGuide(true)}
+            onOpenQuiz={() => setShowQuiz(true)}
+            onStartCycleSim={() => {
+              setStage(HARDWARE_STAGES.CYCLE_SIMULATION);
+              setShowCycleSim(true);
+            }}
+            onResetPower={handleResetPower}
+            onSelectCheckpointIndex={handleSelectCheckpointIndex}
+            currentCheckpointIndex={currentCpIndex}
+            currentCpuIndex={currentCpuIndex}
+            onSelectCpuIndex={handleSelectCpuIndex}
+          />
+          <SignalTelemetryPanel
+            stage={stage}
+            currentCheckpointIndex={currentCpIndex}
+            currentCpuIndex={currentCpuIndex}
+            isAutoCruising={isAutoCruising}
+          />
+        </>
+      )}
+
+      {/* 5. POP UP PENJELASAN NON-TENGAH (Hanya Muncul di Pojok Kanan Bawah Ketika Karakter Diam 3 Detik) */}
+      {isDwelling && dwellingComponent && (
+        <CinematicHUDCard
+          key={dwellingComponent.id}
+          component={dwellingComponent}
+          currentStepIndex={isInsideCpu ? currentCpuIndex : currentCpIndex}
+          totalSteps={isInsideCpu ? CPU_COMPONENTS.length : MOTHERBOARD_CHECKPOINTS.length}
+          isInsideCpu={isInsideCpu}
+          dwellDuration={3.0} // Diam selama 3 detik di setiap komponen
+          isPaused={isDwellPaused}
+          onTogglePause={() => setIsDwellPaused((prev) => !prev)}
+          onSkip={handleAutoAdvance} // Lewati langsung ke komponen berikutnya
+          onAutoAdvance={handleAutoAdvance} // Timer 3 detik habis -> otomatis lanjut
+          nextComponentName={nextComponentName}
           isAutoCruising={isAutoCruising}
-          onToggleAutoCruise={() => setIsAutoCruising((prev) => !prev)}
-          onSwitchScene={handleSwitchScene}
-          onOpenGuide={() => setShowGuide(true)}
-          onOpenQuiz={() => setShowQuiz(true)}
-          onStartCycleSim={() => setShowCycleSim(true)}
-          onResetPower={handleResetPower}
-          onSelectCheckpointIndex={handleSelectCheckpointIndex}
-          currentCheckpointIndex={currentCpIndex}
+          onResumeAutoCruise={() => setIsAutoCruising(true)}
         />
       )}
 
-      {/* Panduan Tombol Kontrol Keyboard */}
-      {isPowered && <ControlsGuide isInsideCpu={stage === HARDWARE_STAGES.INSIDE_CPU} />}
-
-      {/* Dialog Penjelasan Akademis Komponen AOK */}
-      {selectedDialogComponent && (
-        <ComponentDialog
-          component={selectedDialogComponent}
-          onClose={() => setSelectedDialogComponent(null)}
-          onNext={handleNextCheckpoint}
-          hasNext={
-            stage !== HARDWARE_STAGES.INSIDE_CPU &&
-            currentCpIndex < MOTHERBOARD_CHECKPOINTS.length
-          }
-          nextLabel={
-            currentCpIndex === MOTHERBOARD_CHECKPOINTS.length - 1
-              ? "Masuk ke Inti Silikon CPU →"
-              : "Lanjut ke Titik Berikutnya"
-          }
-        />
+      {/* 6. Kartu Selesai Tur Seluruh Komputer */}
+      {showTourCompleted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/55 p-4 backdrop-blur-sm">
+          <TourCompletedCard
+            onStartCycleSim={() => {
+              setShowTourCompleted(false);
+              setStage(HARDWARE_STAGES.CYCLE_SIMULATION);
+              setShowCycleSim(true);
+            }}
+            onOpenQuiz={() => {
+              setShowTourCompleted(false);
+              setShowQuiz(true);
+            }}
+            onRestartTour={() => {
+              setShowTourCompleted(false);
+              handlePowerOn();
+            }}
+            onClose={() => setShowTourCompleted(false)}
+          />
+        </div>
       )}
 
-      {/* Simulasi Interaktif Siklus Instruksi (Fetch - Decode - Execute - Writeback) */}
+      {/* 7. Simulasi Interaktif Siklus Instruksi (Fetch - Decode - Execute - Writeback) */}
       {showCycleSim && (
         <InstructionCycleUI
           currentStep={currentCycleStep}
           onStepChange={setCurrentCycleStep}
-          onClose={() => setShowCycleSim(false)}
+          onClose={() => {
+            setShowCycleSim(false);
+            setStage(HARDWARE_STAGES.INSIDE_CPU);
+          }}
           onExecuteBurst={setIsExecuting}
         />
       )}
 
-      {/* Modal Kuis Evaluasi Pemahaman AOK */}
+      {/* 8. Modal Kuis Evaluasi Pemahaman Akademis AOK */}
       {showQuiz && <QuizModal onClose={() => setShowQuiz(false)} />}
 
-      {/* Modal Diktat Referensi Akademis AOK */}
+      {/* 9. Modal Diktat Referensi Akademis AOK */}
       {showGuide && <AcademicGuideModal onClose={() => setShowGuide(false)} />}
-    </div>
+    </main>
   );
 }

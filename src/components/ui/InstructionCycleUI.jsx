@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Play, ArrowRight, RotateCcw, Cpu, Check, Layers } from 'lucide-react';
+import React from 'react';
+import { X, ArrowRight, RotateCcw, Cpu, Layers } from 'lucide-react';
 import { INSTRUCTION_CYCLE_STEPS } from '../../data/aokData';
 import { sound } from '../../audio/SoundEffects';
 
@@ -176,7 +176,7 @@ export default function InstructionCycleUI({
 
         <button
           onClick={handleNextStep}
-          className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-md transition-all"
+          className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-md transition-all"
         >
           <span>
             {currentStep < 4

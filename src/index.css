@@ -2,8 +2,6 @@
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html, body, #root {
@@ -48,6 +46,84 @@ html, body, #root {
   }
 }
 
+@keyframes screenShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  15% { transform: translate3d(-8px, 4px, 0); }
+  30% { transform: translate3d(8px, -4px, 0); }
+  45% { transform: translate3d(-6px, 5px, 0); }
+  60% { transform: translate3d(6px, -5px, 0); }
+  75% { transform: translate3d(-4px, 3px, 0); }
+}
+
 .glow-cyan {
   animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+.screen-shake {
+  animation: screenShake 0.42s ease-out;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.18), rgba(59, 130, 246, 0.06) 35%, transparent 70%);
+}
+
+.scene-flash {
+  animation: sceneFlash 0.52s ease-out forwards;
+}
+
+@keyframes sceneFlash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.hud-safe-frame {
+  padding: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 1.5rem))
+    max(1.5rem, calc(env(safe-area-inset-right, 0px) + 1.5rem))
+    max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem))
+    max(1.5rem, calc(env(safe-area-inset-left, 0px) + 1.5rem));
+}
+
+.cinematic-hud-panel {
+  width: min(26rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: min(60svh, 38rem);
+}
+
+@media (min-width: 640px) and (max-width: 1100px) {
+  .cinematic-hud-panel {
+    bottom: 5.5rem;
+    width: min(22rem, calc(100vw - 2rem));
+    max-height: min(48svh, 24rem);
+  }
+}
+
+@media (max-width: 639px) {
+  .cinematic-hud-panel {
+    width: auto;
+    max-height: min(45svh, 20rem);
+  }
+}
+
+.boot-scan {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 5px,
+    rgba(34, 211, 238, 0.06) 6px
+  );
+  animation: bootScan 5s linear infinite;
+}
+
+@keyframes bootScan {
+  from { background-position-y: 0; }
+  to { background-position-y: 48px; }
+}
+
+.game-scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(148, 163, 184, 0.08),
+    rgba(148, 163, 184, 0.08) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.12;
 }

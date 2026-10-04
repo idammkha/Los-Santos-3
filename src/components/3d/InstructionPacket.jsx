@@ -2,25 +2,22 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
+import { CPU_COMPONENTS } from '../../data/aokData';
 
 // Objek 3D Paket Instruksi Komputer ("ADD R1, #5")
-// Bergerak melintasi komponen CPU selama simulasi Siklus Instruksi (Fetch - Decode - Execute - Writeback)
+// Bergerak turun mengikuti exploded CPU stack selama Fetch - Decode - Execute - Writeback.
 export default function InstructionPacket({ currentStep = 1, isVisible = true }) {
   const meshRef = useRef();
 
-  // Posisi dinamis target per siklus:
-  // Step 1 (Fetch): Memori Cache / Register Bank (IR) [7, 1.6, 4]
-  // Step 2 (Decode): Control Unit (CU) [0, 1.8, -6]
-  // Step 3 (Execute): ALU Reactor [7, 1.8, -4]
-  // Step 4 (Writeback): Register ACC [7, 1.6, 4]
+  const getComponentPosition = (id) => CPU_COMPONENTS.find((component) => component.id === id)?.roomPosition;
   const targetPositions = {
-    1: [7, 1.6, 4],
-    2: [0, 1.8, -6],
-    3: [7, 1.8, -4],
-    4: [7, 1.6, 4],
+    1: getComponentPosition('registers'),
+    2: getComponentPosition('cu'),
+    3: getComponentPosition('alu'),
+    4: getComponentPosition('registers'),
   };
 
-  const currentTarget = targetPositions[currentStep] || [7, 1.6, 4];
+  const currentTarget = targetPositions[currentStep] || getComponentPosition('registers') || [0, 0.75, 0];
 
   useFrame((state, delta) => {
     if (meshRef.current) {
@@ -46,7 +43,7 @@ export default function InstructionPacket({ currentStep = 1, isVisible = true })
   return (
     <group ref={meshRef} position={currentTarget}>
       {/* Kubus Kristal Data Instruksi */}
-      <mesh>
+      <mesh position={[0, 0.85, 0]}>
         <boxGeometry args={[0.5, 0.5, 0.5]} />
         <meshStandardMaterial
           color="#00ffff"
@@ -57,7 +54,7 @@ export default function InstructionPacket({ currentStep = 1, isVisible = true })
       </mesh>
 
       {/* Inti Biner Bercahaya */}
-      <mesh>
+      <mesh position={[0, 0.85, 0]}>
         <sphereGeometry args={[0.18, 16, 16]} />
         <meshStandardMaterial
           color="#ffffff"
@@ -67,12 +64,12 @@ export default function InstructionPacket({ currentStep = 1, isVisible = true })
       </mesh>
 
       {/* Cahaya Dinamis Mengikuti Paket */}
-      <pointLight color="#00ffff" intensity={3} distance={4} />
+      <pointLight color="#00ffff" intensity={3} distance={4} position={[0, 0.85, 0]} />
 
       {/* Label Instruksi Melayang */}
       <Float speed={2} floatIntensity={0.2}>
         <Text
-          position={[0, 0.6, 0]}
+          position={[0, 1.45, 0]}
           fontSize={0.2}
           color="#ffffff"
           anchorX="center"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, BookOpen, Cpu, Zap, Layers, Activity, Clock } from 'lucide-react';
+import { X, BookOpen, Cpu, Zap, Layers, Activity } from 'lucide-react';
 
 export default function AcademicGuideModal({ onClose }) {
   const [activeTab, setActiveTab] = useState('power_flow');

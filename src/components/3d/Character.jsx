@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Trail, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
@@ -23,49 +23,49 @@ export default function Character({
   const lastFootstepTime = useRef(0);
 
   // Animasi prosedural berjalan, melayang, dan detak energi elektron
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     const t = clock.getElapsedTime();
 
     if (groupRef.current) {
-      // Rotasi cincin aura elektron mengelilingi karakter
+      const targetPos = new THREE.Vector3(position[0], position[1] || 0.4, position[2]);
+      const currentPos = groupRef.current.position;
+      currentPos.lerp(targetPos, 1 - Math.exp(-delta * 14));
+
+      const targetYRot = rotation[1] || 0;
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetYRot, 1 - Math.exp(-delta * 12));
+
       if (auraRingRef.current) {
         auraRingRef.current.rotation.x = t * 2.0;
         auraRingRef.current.rotation.y = t * 2.8;
       }
 
-      // Detak napas energi / denyut plasma inti
       if (coreRef.current) {
-        const pulse = 1 + Math.sin(t * 8) * 0.12;
+        const pulse = 1 + Math.sin(t * 9) * (isMoving ? 0.18 : 0.1);
         coreRef.current.scale.set(pulse, pulse, pulse);
       }
 
       if (isMoving) {
-        // Animasi berlari (Run cycle)
         const stride = Math.sin(t * 14);
         const counterStride = -stride;
 
-        // Ayunan lengan
-        if (leftArmRef.current) leftArmRef.current.rotation.x = stride * 0.7;
-        if (rightArmRef.current) rightArmRef.current.rotation.x = counterStride * 0.7;
+        if (leftArmRef.current) leftArmRef.current.rotation.x = stride * 0.72;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = counterStride * 0.72;
+        if (leftLegRef.current) leftLegRef.current.rotation.x = counterStride * 0.82;
+        if (rightLegRef.current) rightLegRef.current.rotation.x = stride * 0.82;
 
-        // Ayunan kaki
-        if (leftLegRef.current) leftLegRef.current.rotation.x = counterStride * 0.75;
-        if (rightLegRef.current) rightLegRef.current.rotation.x = stride * 0.75;
+        const bounce = Math.abs(Math.sin(t * 14)) * 0.10;
+        currentPos.y += bounce;
 
-        // Angkat dan turunkan badan saat melangkah
-        groupRef.current.position.y = (position[1] || 0.4) + Math.abs(Math.sin(t * 14)) * 0.12;
-
-        // Suara langkah kaki elektron
         if (t - lastFootstepTime.current > 0.22) {
           sound.playFootstep();
           lastFootstepTime.current = t;
         }
       } else {
-        // Animasi mengambang santai (Idle hovering)
-        groupRef.current.position.y = (position[1] || 0.4) + Math.sin(t * 3) * 0.06;
+        const idleBob = Math.sin(t * 3) * 0.06;
+        currentPos.y = (position[1] || 0.4) + idleBob;
 
-        if (leftArmRef.current) leftArmRef.current.rotation.x = Math.sin(t * 2) * 0.1;
-        if (rightArmRef.current) rightArmRef.current.rotation.x = -Math.sin(t * 2) * 0.1;
+        if (leftArmRef.current) leftArmRef.current.rotation.x = Math.sin(t * 2) * 0.12;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = -Math.sin(t * 2) * 0.12;
         if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
         if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
       }
@@ -80,8 +80,8 @@ export default function Character({
     >
       {/* Jejak Cahaya Listrik di belakang karakter saat bergerak (Trail Effect) */}
       <Trail
-        width={0.6}
-        length={6}
+        width={isMoving ? 0.65 : 0.4}
+        length={isMoving ? 6 : 4}
         color={color}
         attenuation={(t) => t * t}
       >
@@ -187,8 +187,8 @@ export default function Character({
       {/* Percikan Listrik Bergerak (Sparkles) */}
       {isPowered && (
         <Sparkles
-          count={18}
-          scale={1.2}
+          count={10}
+          scale={0.9}
           size={2}
           speed={0.8}
           noise={0.3}
