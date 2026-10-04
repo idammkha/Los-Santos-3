@@ -85,6 +85,9 @@ export default function App() {
 
     window.setTimeout(() => setBootProgress(42), 280);
     window.setTimeout(() => setBootProgress(76), 780);
+    window.setTimeout(() => {
+      handleCaseExplodeComplete();
+    }, 1400);
   };
 
   const handlePowerOn = () => {
@@ -363,7 +366,13 @@ export default function App() {
       />
 
       {/* 2. Layar Awal: Casing Komputer & Tombol Power Nyata */}
-      {!isPowered && <BootStatusOverlay isExploding={isCaseExploding} bootProgress={bootProgress} />}
+      {!isPowered && (
+        <BootStatusOverlay
+          isExploding={isCaseExploding}
+          bootProgress={bootProgress}
+          onPowerClick={handleComputerPowerButton}
+        />
+      )}
 
       {/* 3. HUD Telemetri & Kontrol Navigasi Utama */}
       {isPowered && (

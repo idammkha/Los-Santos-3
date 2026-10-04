@@ -1,7 +1,7 @@
 import React from 'react';
 import { Cpu, Power, Zap } from 'lucide-react';
 
-export default function BootStatusOverlay({ isExploding, bootProgress }) {
+export default function BootStatusOverlay({ isExploding, bootProgress, onPowerClick }) {
   const bootStatus = bootProgress < 32
     ? 'MENUNGGU TOMBOL POWER FISIK DI CASING'
     : bootProgress < 68
@@ -26,13 +26,22 @@ export default function BootStatusOverlay({ isExploding, bootProgress }) {
               Setelah tombol ditekan, panel casing akan explode untuk memperlihatkan PSU, kabel, kipas, dan motherboard sebelum tur AOK dimulai.
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-            <Power className={`h-5 w-5 ${isExploding ? 'text-emerald-300' : 'text-cyan-300'}`} />
+          <button
+            type="button"
+            onClick={onPowerClick}
+            disabled={isExploding}
+            className={`pointer-events-auto flex shrink-0 items-center gap-3 rounded-2xl border transition-all ${
+              isExploding
+                ? 'border-emerald-500/40 bg-emerald-500/10 cursor-default'
+                : 'border-cyan-400/40 bg-cyan-500/20 hover:bg-cyan-500/30 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)] active:scale-95'
+            } px-4 py-2.5 text-left`}
+          >
+            <Power className={`h-5 w-5 ${isExploding ? 'animate-pulse text-emerald-300' : 'text-cyan-300'}`} />
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Status</div>
-              <div className="text-xs font-bold text-cyan-100">{isExploding ? bootStatus : 'Cari tombol POWER di front panel'}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Power Switch</div>
+              <div className="text-xs font-bold text-cyan-100">{isExploding ? bootStatus : 'Nyalakan PC (Klik di Sini)'}</div>
             </div>
-          </div>
+          </button>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">

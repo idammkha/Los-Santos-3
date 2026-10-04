@@ -24,7 +24,7 @@ function PcCaseFan({ position, rotation = [0, 0, 0], scale = 1, isSpinning, isSu
         <meshStandardMaterial color="#0b0f14" roughness={0.7} metalness={0.4} />
       </mesh>
       {/* Lubang Intake Silinder Tengah */}
-      <mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.54, 0.54, 0.2, 32]} />
         <meshStandardMaterial color="#05080c" roughness={0.8} />
       </mesh>
@@ -40,7 +40,7 @@ function PcCaseFan({ position, rotation = [0, 0, 0], scale = 1, isSpinning, isSu
       </mesh>
       {/* Pusat Motor Rotor & Bilah Kipas Berputar */}
       <group ref={bladesRef} position={[0, 0, 0.02]}>
-        <mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.2, 0.2, 0.14, 24]} />
           <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.25} />
         </mesh>
@@ -225,7 +225,7 @@ function PsuShroud({ isSurging }) {
 // -------------------------------------------------------------
 // Sub-Komponen: Hardware Internal Casing (GPU, AIO Cooler, RAM)
 // -------------------------------------------------------------
-function InternalHardware({ isPowered, isSurging, explodeOffset = 0 }) {
+function InternalHardware({ isPowered, isSurging, explodeOffset = 0, fanColor = '#06b6d4' }) {
   const gpuFan1Ref = useRef();
   const gpuFan2Ref = useRef();
   const gpuFan3Ref = useRef();
@@ -346,60 +346,96 @@ function InternalHardware({ isPowered, isSurging, explodeOffset = 0 }) {
         </group>
       </group>
 
-      {/* 3. Kartu Grafis Dedikasi (Dedicated High-End Triple-Fan GPU) */}
+      {/* 2b. Braket Radiator & 2x Kipas Samping Vertikal (Vertical Side Radiator & Dual Fans) */}
+      <group position={[0.74, 2.85, 1.25]}>
+        {/* Braket Radiator Logam Vertikal */}
+        <mesh position={[0.04, 0, 0]} castShadow>
+          <boxGeometry args={[0.04, 2.65, 1.35]} />
+          <meshStandardMaterial color="#111827" metalness={0.85} roughness={0.25} />
+        </mesh>
+        {/* Kisi-Kisi Sirip Radiator (Radiator Fin Mesh) */}
+        <mesh position={[0.01, 0, 0]}>
+          <boxGeometry args={[0.02, 2.5, 1.25]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.4} wireframe />
+        </mesh>
+
+        {/* 2x Kipas Radiator Vertikal 120mm Menghadap Kaca Samping (-X) */}
+        <PcCaseFan
+          position={[-0.08, -0.62, 0]}
+          rotation={[0, -Math.PI / 2, 0]}
+          isSpinning={true}
+          isSurging={isSurging}
+          rgbColor={fanColor}
+          scale={0.95}
+        />
+        <PcCaseFan
+          position={[-0.08, 0.62, 0]}
+          rotation={[0, -Math.PI / 2, 0]}
+          isSpinning={true}
+          isSurging={isSurging}
+          rgbColor={fanColor}
+          scale={0.95}
+        />
+      </group>
+
+      {/* 3. Kartu Grafis Dedikasi Vertikal (Vertical PCIe Mounted Triple-Fan GPU) */}
       <group
-        position={[0.2 - explodeOffset * 0.25, 2.1 - explodeOffset * 0.15, -0.1]}
+        position={[0.15 - explodeOffset * 0.25, 2.15 - explodeOffset * 0.15, -0.1]}
       >
-        {/* Bodi Utama Shroud GPU */}
-        <RoundedBox args={[0.95, 0.72, 2.75]} radius={0.04} smoothness={3} castShadow receiveShadow>
+        {/* Bodi Utama Shroud GPU Vertikal */}
+        <RoundedBox args={[0.26, 1.22, 2.85]} radius={0.04} smoothness={3} castShadow receiveShadow>
           <meshStandardMaterial color="#18202a" metalness={0.82} roughness={0.28} />
         </RoundedBox>
 
-        {/* Pelat Belakang Logam (Metal Backplate) GPU */}
-        <mesh position={[0, 0.37, 0]} castShadow>
-          <boxGeometry args={[0.94, 0.025, 2.72]} />
+        {/* Pelat Belakang Logam (Metal Backplate) GPU - Sisi Kanan (+X) */}
+        <mesh position={[0.135, 0, 0]} castShadow>
+          <boxGeometry args={[0.015, 1.18, 2.82]} />
           <meshStandardMaterial color="#2d3748" metalness={0.92} roughness={0.18} />
         </mesh>
         {/* Cutout Aliran Udara di Ujung Backplate */}
-        <mesh position={[0, 0.385, 0.95]}>
-          <boxGeometry args={[0.65, 0.01, 0.55]} />
+        <mesh position={[0.145, 0, 0.95]}>
+          <boxGeometry args={[0.01, 0.8, 0.55]} />
           <meshStandardMaterial color="#0b0f17" roughness={0.8} wireframe />
         </mesh>
 
-        {/* Tulisan Logo RGB Samping Kartu Grafis */}
-        <mesh position={[-0.485, 0, -0.3]}>
-          <boxGeometry args={[0.02, 0.18, 1.1]} />
+        {/* Tulisan Logo RGB Sisi Atas Kartu Grafis */}
+        <mesh position={[0, 0.615, -0.3]}>
+          <boxGeometry args={[0.2, 0.02, 1.1]} />
           <meshStandardMaterial color="#0f172a" metalness={0.7} />
         </mesh>
         <Text
-          position={[-0.5, 0, -0.3]}
+          position={[-0.135, 0.42, -0.3]}
           rotation={[0, -Math.PI / 2, 0]}
-          fontSize={0.09}
+          fontSize={0.08}
           color={isSurging ? '#22c55e' : '#38bdf8'}
           fontStyle="bold"
         >
           GEFORCE AOK RTX
         </Text>
 
-        {/* 3x Kipas Pendingin GPU di Sisi Bawah Shroud */}
-        {[-0.8, 0, 0.8].map((zPos, fanIdx) => {
+        {/* 3x Kipas Pendingin GPU Vertikal di Sisi Kiri Shroud (-X) Menghadap Panel Kaca */}
+        {[-0.85, 0, 0.85].map((zPos, fanIdx) => {
           const fanRef = fanIdx === 0 ? gpuFan1Ref : fanIdx === 1 ? gpuFan2Ref : gpuFan3Ref;
           return (
-            <group key={`gpu-fan-${fanIdx}`} position={[0, -0.37, zPos]} rotation={[Math.PI / 2, 0, 0]}>
+            <group
+              key={`gpu-fan-${fanIdx}`}
+              position={[-0.135, 0, zPos]}
+              rotation={[0, -Math.PI / 2, 0]}
+            >
               {/* Ring Cekungan Fan Shroud */}
-              <mesh>
+              <mesh rotation={[Math.PI / 2, 0, 0]}>
                 <cylinderGeometry args={[0.38, 0.38, 0.03, 24]} />
                 <meshStandardMaterial color="#090d14" roughness={0.8} />
               </mesh>
               {/* Rotor & Bilah Berputar */}
               <group ref={fanRef}>
-                <mesh position={[0, 0.02, 0]}>
+                <mesh position={[0, 0, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
                   <cylinderGeometry args={[0.13, 0.13, 0.03, 16]} />
                   <meshStandardMaterial color="#334155" metalness={0.9} roughness={0.2} />
                 </mesh>
                 {[0, 1, 2, 3, 4, 5, 6, 7].map((b) => (
-                  <mesh key={`gpu-b-${b}`} rotation={[0, (b * Math.PI) / 4, 0]}>
-                    <boxGeometry args={[0.08, 0.02, 0.32]} />
+                  <mesh key={`gpu-b-${b}`} rotation={[0, 0, (b * Math.PI) / 4]}>
+                    <boxGeometry args={[0.08, 0.32, 0.02]} />
                     <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.35} />
                   </mesh>
                 ))}
@@ -408,25 +444,31 @@ function InternalHardware({ isPowered, isSurging, explodeOffset = 0 }) {
           );
         })}
 
-        {/* Kabel Daya 12VHPWR Sleeved di Bagian Samping Atas GPU */}
-        <group position={[-0.45, 0.15, 0.2]}>
+        {/* Kabel Daya 12VHPWR Sleeved di Bagian Atas GPU */}
+        <group position={[0, 0.62, 0.2]}>
           <mesh>
-            <boxGeometry args={[0.12, 0.1, 0.22]} />
+            <boxGeometry args={[0.16, 0.08, 0.2]} />
             <meshStandardMaterial color="#020617" roughness={0.7} />
           </mesh>
-          {/* Kabel Lengkung Mengarah ke Bawah ke Shroud */}
-          {[-0.05, 0.05].map((cOffset, cIdx) => (
-            <mesh key={`gpu-pcie-cbl-${cIdx}`} position={[-0.08, -0.35, cOffset]} rotation={[0, 0, 0.4]}>
-              <cylinderGeometry args={[0.025, 0.025, 0.7, 8]} />
+          {/* Kabel Lengkung Mengarah ke Belakang Motherboard Tray */}
+          {[-0.04, 0.04].map((cOffset, cIdx) => (
+            <mesh key={`gpu-pcie-cbl-${cIdx}`} position={[0.2, 0.08, cOffset]} rotation={[0, 0, 1.2]}>
+              <cylinderGeometry args={[0.025, 0.025, 0.45, 8]} />
               <meshStandardMaterial color="#0f172a" roughness={0.6} />
             </mesh>
           ))}
         </group>
 
-        {/* Braket Logam PCIe Belakang (Expansion Bracket) */}
-        <mesh position={[0, 0, -1.41]} castShadow>
-          <boxGeometry args={[0.88, 0.65, 0.04]} />
+        {/* Braket Logam PCIe Belakang (Vertical Expansion Bracket) */}
+        <mesh position={[0, 0, -1.43]} castShadow>
+          <boxGeometry args={[0.24, 1.15, 0.04]} />
           <meshStandardMaterial color="#94a3b8" metalness={0.95} roughness={0.15} />
+        </mesh>
+
+        {/* Kabel Riser PCIe Vertikal (PCIe Riser Extension) ke Slot Motherboard */}
+        <mesh position={[0.3, -0.65, 0]}>
+          <boxGeometry args={[0.5, 0.04, 1.4]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.7} />
         </mesh>
       </group>
     </group>
@@ -582,6 +624,7 @@ export default function ComputerCase({
         isPowered={isPowered}
         isSurging={isExploding}
         explodeOffset={explodeProgress}
+        fanColor={fanColor}
       />
 
       {/* -------------------------------------------------------- */}
@@ -917,23 +960,13 @@ export default function ComputerCase({
           <meshStandardMaterial color="#151d28" metalness={0.82} roughness={0.3} />
         </RoundedBox>
 
-        {/* 2x Kipas Exhaust Atas 120mm */}
-        <PcCaseFan
-          position={[0, -0.06, -0.7]}
-          rotation={[Math.PI / 2, 0, 0]}
-          isSpinning={true}
-          isSurging={isExploding}
-          rgbColor={fanColor}
-          scale={0.95}
-        />
-        <PcCaseFan
-          position={[0, -0.06, 0.7]}
-          rotation={[Math.PI / 2, 0, 0]}
-          isSpinning={true}
-          isSurging={isExploding}
-          rgbColor={fanColor}
-          scale={0.95}
-        />
+        {/* Rel Mounting Radiator & Ventilasi Aliran Udara */}
+        {[-1.2, -0.6, 0, 0.6, 1.2].map((offsetZ, rIdx) => (
+          <mesh key={`top-rail-${rIdx}`} position={[0, -0.02, offsetZ]}>
+            <boxGeometry args={[1.8, 0.04, 0.12]} />
+            <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
+          </mesh>
+        ))}
 
         {/* Filter Debu Magnetik (Magnetic Dust Filter Mesh) */}
         <mesh position={[0, 0.05, 0]}>
