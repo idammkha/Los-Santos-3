@@ -98,7 +98,7 @@ export default function App() {
     setIsAutoCruising(true);
     setCurrentCpIndex(0);
     setCurrentCpuIndex(0);
-    updateCharacterPosition([0, 0.4, 18]);
+    updateCharacterPosition(MOTHERBOARD_CHECKPOINTS[0].position);
     setCharacterRotation([0, Math.PI, 0]);
     setActiveCheckpoint('front_panel');
     setActiveComponent(null);
@@ -127,7 +127,7 @@ export default function App() {
     setIsCaseExploding(false);
     setBootProgress(0);
     setStage(HARDWARE_STAGES.POWER_OFF);
-    updateCharacterPosition([0, 0.4, 18]);
+    updateCharacterPosition(MOTHERBOARD_CHECKPOINTS[0].position);
     setCharacterRotation([0, Math.PI, 0]);
     setIsMoving(false);
     setIsAutoCruising(true);
@@ -163,7 +163,7 @@ export default function App() {
     if (stage === HARDWARE_STAGES.INSIDE_CPU || stage === HARDWARE_STAGES.CYCLE_SIMULATION) {
       // Kembali ke Motherboard
       setStage(HARDWARE_STAGES.PCB_JOURNEY);
-      updateCharacterPosition([0, 0.4, -1]);
+      updateCharacterPosition(MOTHERBOARD_CHECKPOINTS[4].position);
       setActiveCheckpoint('socket');
       setActiveComponent(null);
       setCurrentCpIndex(4);

@@ -19,38 +19,65 @@ const PCB_SIGNAL_TRACES = [
   [3.8, -8.1, 3.5, 0],
 ];
 
-// Motherboard 3D Realistis: Papan Sirkuit Tingkat Tinggi (High-End ATX Motherboard)
-// Lengkap dengan jalur tembaga berlapis, VRM 16-fase berheatsink aluminium bersirip,
-// soket LGA 1700 dengan tuas ILM, kristal kuarsa, kabel ATX 24-pin berselubung, dan slot RAM/PCIe.
+// Motherboard 3D Realistis: Skema dan Komponen Motherboard (Matching Image 2 Reference 100%)
+// Lengkap dengan Soket Prosesor (LGA/PGA), VRM & Konektor Daya 12V CPU, Slot RAM DDR Dual Channel,
+// Konektor Daya ATX 24-Pin, Heatsink Northbridge & Southbridge, Slot PCIe x16, PCIe x1, Slot PCI Klasik,
+// Baterai CMOS CR2032, Chip BIOS, Port SATA 6Gb/s, Panel Depan JFP1, Port I/O Belakang Lengkap, dan Crystal Oscillator.
 export default function MotherboardScene({ isPowered, activeCheckpoint, onSelectCheckpoint }) {
   return (
     <group position={[0, 0, 0]}>
-      {/* 1. PCB Utama (Dark Matte Black Multi-Layer PCB dengan tekstur sirkuit) */}
+      {/* 1. PCB Utama Hijau ATX Multi-Layer (Sesuai Skema Gambar 2) */}
       <MotherboardPcbBase isPowered={isPowered} />
 
-      {/* 2. Jalur Bus Tembaga (Copper Power Traces & Signal Arcs) */}
+      {/* 2. Jalur Bus Tembaga (Copper Power Traces menghubungkan 5 Checkpoint Utama) */}
       <MainPowerTraces isPowered={isPowered} />
 
-      {/* 3. Komponen Nyata 1: Front Panel Header (JFP1 Pin Jumper PWR_SW) */}
-      <RealisticFrontPanelHeader isPowered={isPowered} />
-
-      {/* 4. Komponen Nyata 2: 24-Pin ATX Main Power Cable Bundle */}
-      <RealisticAtxConnector />
-
-      {/* 5. Komponen Nyata 3: VRM 16-Phase Power Delivery (Dual Fin-Heatsink & Heatpipe) */}
-      <RealisticVrmSection isPowered={isPowered} />
-
-      {/* 6. Komponen Nyata 4: Quartz Crystal Oscillator (BCLK 100MHz Can) */}
-      <RealisticCrystalOscillator isPowered={isPowered} />
-
-      {/* 7. Komponen Nyata 5: LGA 1700 CPU Socket & Core i9 IHS Package */}
+      {/* 3. Soket Prosesor (LGA / PGA Socket) dengan Tuas ILM & CPU IHS */}
       <RealisticCpuSocket isPowered={isPowered} />
 
-      {/* 8. Komponen Pendukung Realistis Motherboard (RAM DIMM, PCIe 5.0, M.2 Heatsink, Rear I/O) */}
-      <SurroundingMotherboardHardware />
-      <MotherboardSilkscreenAndSmallParts isPowered={isPowered} />
+      {/* 4. VRM (Voltage Regulator Module) & Konektor Daya CPU 12V ATX */}
+      <RealisticVrmSection isPowered={isPowered} />
 
-      {/* 9. Beacon Penanda Checkpoint Interaktif AOK */}
+      {/* 5. Slot Memori RAM DDR Dual Channel (4 Slot Biru/Hitam dengan Klip Pengunci) */}
+      <RealisticRamSlots />
+
+      {/* 6. Konektor Daya ATX 24-Pin dengan Bundel Kabel Pelangi di Sisi Kanan */}
+      <RealisticAtxConnector />
+
+      {/* 7. Chipset Northbridge dengan Heatsink Bersirip Aluminium di Bawah CPU */}
+      <RealisticNorthbridge isPowered={isPowered} />
+
+      {/* 8. Slot Ekspansi: PCIe x16 (Biru), PCIe x1, & Slot PCI Klasik (Putih 32-bit) */}
+      <RealisticExpansionSlots />
+
+      {/* 9. Chipset Southbridge di Kuadran Kanan Bawah */}
+      <RealisticSouthbridge isPowered={isPowered} />
+
+      {/* 10. Baterai CMOS CR2032 3V & Dudukan Logam Pegas */}
+      <RealisticCmosBattery />
+
+      {/* 11. Chip BIOS ROM Flash SPI 8-pin */}
+      <RealisticBiosChip />
+
+      {/* 12. Port SATA 6Gb/s (Blok 6 Port Biru L-shaped) */}
+      <RealisticSataPorts />
+
+      {/* 13. Header Panel Depan (JFP1) di Sudut Kanan Bawah */}
+      <RealisticFrontPanelHeader isPowered={isPowered} />
+
+      {/* 14. Port I/O Belakang Lengkap (PS/2, USB, VGA, DVI/HDMI, LAN RJ45, Audio 3.5mm) */}
+      <RealisticRearIoPorts />
+
+      {/* 15. Audio Realtek ALC & Super I/O Controller Chips */}
+      <RealisticAudioAndSuperIo />
+
+      {/* 16. Crystal Oscillator 100MHz Quartz Can (BCLK) */}
+      <RealisticCrystalOscillator isPowered={isPowered} />
+
+      {/* 17. Silkscreen Skema & Komponen Motherboard (Matching Image 2) */}
+      <MotherboardSilkscreenAndDetails isPowered={isPowered} />
+
+      {/* 18. Beacon Penanda Checkpoint Interaktif AOK */}
       {MOTHERBOARD_CHECKPOINTS.map((cp) => (
         <CheckpointBeacon
           key={cp.id}
@@ -64,135 +91,140 @@ export default function MotherboardScene({ isPowered, activeCheckpoint, onSelect
   );
 }
 
-// 1. Papan PCB Utama Realistis
+// 1. Papan PCB Utama Hijau Klasik (Sesuai Skema Gambar 2)
 function MotherboardPcbBase({ isPowered }) {
   return (
     <group position={[0, -0.25, 7.5]}>
-      {/* FR-4 substrate with copper foil exposed only as a thin board-edge layer */}
+      {/* Substrat FR-4 PCB Hijau Klasik dengan Lapisan Tembaga */}
       <RoundedBox args={[18, 0.42, 26]} radius={0.14} smoothness={4} receiveShadow castShadow>
         <meshPhysicalMaterial
-          color="#14231d"
-          roughness={0.68}
+          color="#064e3b"
+          roughness={0.65}
           metalness={0.12}
-          clearcoat={0.18}
-          clearcoatRoughness={0.56}
+          clearcoat={0.2}
+          clearcoatRoughness={0.5}
         />
       </RoundedBox>
 
+      {/* Lapisan Foil Tembaga Sisi Samping PCB */}
       <mesh position={[0, -0.215, 0]}>
         <boxGeometry args={[18.04, 0.025, 26.04]} />
         <meshStandardMaterial
-          color="#a66d3b"
+          color="#b45309"
           roughness={0.56}
-          metalness={0.62}
+          metalness={0.7}
         />
       </mesh>
 
+      {/* Jalur Konduktor Tembaga / PCB Traces Halus */}
       <group position={[0, 0.22, 0]}>
         {PCB_SIGNAL_TRACES.map(([x, z, length, angle], index) => (
           <mesh key={`pcb-signal-${index}`} position={[x, 0, z]} rotation={[0, angle, 0]}>
-            <boxGeometry args={[length, 0.008, 0.026]} />
+            <boxGeometry args={[length, 0.008, 0.03]} />
             <meshBasicMaterial
-              color={isPowered ? '#55745d' : '#31473b'}
+              color={isPowered ? '#10b981' : '#047857'}
               transparent
-              opacity={isPowered ? 0.88 : 0.58}
+              opacity={isPowered ? 0.85 : 0.45}
             />
           </mesh>
         ))}
       </group>
 
-      {/* Lubang Baut Pemasangan Motherboard (Stand-off Holes berlapis emas) */}
+      {/* Lubang Baut Stand-off ATX Standar Berlapis Emas Grounding Ring */}
       {[
-        [-8.2, 0.22, -12],
-        [8.2, 0.22, -12],
-        [-8.2, 0.22, 0],
-        [8.2, 0.22, 0],
-        [-8.2, 0.22, 12],
-        [8.2, 0.22, 12],
+        [-8.0, 0.22, -12.0],
+        [0.0, 0.22, -12.0],
+        [8.0, 0.22, -12.0],
+        [-8.0, 0.22, 0.0],
+        [8.0, 0.22, 0.0],
+        [-8.0, 0.22, 12.0],
+        [0.0, 0.22, 12.0],
+        [8.0, 0.22, 12.0],
       ].map(([x, y, z], i) => (
         <group key={`mount-hole-${i}`} position={[x, y, z]}>
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.3, 0.55, 20]} />
-            <meshStandardMaterial color="#d97706" metalness={0.9} roughness={0.2} />
+            <ringGeometry args={[0.26, 0.52, 24]} />
+            <meshStandardMaterial color="#eab308" metalness={0.92} roughness={0.18} />
           </mesh>
           <mesh position={[0, -0.1, 0]}>
-            <cylinderGeometry args={[0.25, 0.25, 0.3, 16]} />
-            <meshStandardMaterial color="#111827" roughness={0.8} />
+            <cylinderGeometry args={[0.24, 0.24, 0.35, 16]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.8} />
           </mesh>
         </group>
       ))}
 
-      {/* Teks Silkscreen Motherboard Asli */}
+      {/* Judul Besar Silkscreen Papan Sesuai Referensi Gambar 2 */}
       <Text
-        position={[-3.5, 0.23, 11]}
+        position={[0, 0.23, -12.2]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.42}
-        color="#38bdf8"
+        fontSize={0.48}
+        color="#f8fafc"
         fontStyle="bold"
       >
-        AOK Z790-APEX MOTHERBOARD
+        SKEMA DAN KOMPONEN MOTHERBOARD
       </Text>
       <Text
-        position={[-3.5, 0.23, 11.6]}
+        position={[0, 0.23, -11.6]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.2}
+        fontSize={0.22}
         color="#94a3b8"
       >
-        PCIe Gen 5.0 | DDR5 XMP 3.0 | LGA1700 SOCKET
+        STANDARD ATX FORM FACTOR | ARCHITECTURE & HARDWARE REFERENCE
       </Text>
     </group>
   );
 }
 
-// 2. Jalur Bus Tembaga (Copper Traces) dengan Animasi Aliran Elektron
+// 2. Jalur Bus Tembaga (Copper Traces) dengan Animasi Aliran Elektron Menghubungkan 5 Checkpoint
 function MainPowerTraces({ isPowered }) {
   const linePoints = useMemo(
     () => [
-      new THREE.Vector3(0, 0.05, 18),     // 1. Front Panel Switch
-      new THREE.Vector3(-1.5, 0.05, 14.5), // 2. 24-Pin ATX Main Power
-      new THREE.Vector3(-1.8, 0.05, 11),   // 3. VRM VCore Regulator
-      new THREE.Vector3(0, 0.05, 8),
-      new THREE.Vector3(2.2, 0.05, 5),     // 4. Quartz Crystal Oscillator
-      new THREE.Vector3(0, 0.05, 2),
-      new THREE.Vector3(0, 0.05, -1),      // 5. CPU Socket LGA 1700
+      new THREE.Vector3(6.2, 0.05, 19.0),   // 1. Front Panel Switch (JFP1)
+      new THREE.Vector3(7.6, 0.05, 0.5),    // 2. 24-Pin ATX Main Power Connector
+      new THREE.Vector3(1.5, 0.05, 0.0),
+      new THREE.Vector3(-4.0, 0.05, -2.0),  // 3. VRM VCore & 12V CPU Power
+      new THREE.Vector3(-1.0, 0.05, 1.2),
+      new THREE.Vector3(2.4, 0.05, 2.8),    // 4. Quartz Crystal Oscillator (100MHz)
+      new THREE.Vector3(1.0, 0.05, 0.8),
+      new THREE.Vector3(0.0, 0.05, -0.8),   // 5. Soket CPU (LGA / PGA)
     ],
     []
   );
 
   const curve = useMemo(() => new THREE.CatmullRomCurve3(linePoints), [linePoints]);
-  const tubeGeo = useMemo(() => new THREE.TubeGeometry(curve, 96, 0.16, 8, false), [curve]);
+  const tubeGeo = useMemo(() => new THREE.TubeGeometry(curve, 96, 0.14, 8, false), [curve]);
   const sparkRef = useRef();
 
   useFrame(({ clock }) => {
     if (sparkRef.current && isPowered) {
-      const t = (clock.getElapsedTime() * 0.4) % 1;
+      const t = (clock.getElapsedTime() * 0.35) % 1;
       const pt = curve.getPointAt(t);
       sparkRef.current.position.copy(pt);
-      sparkRef.current.position.y += 0.2;
+      sparkRef.current.position.y += 0.25;
     }
   });
 
   return (
     <group>
-      {/* Pipa Jalur Tembaga Utama Berkabut Listrik */}
+      {/* Pipa Jalur Tembaga Bus Daya Utama */}
       <mesh geometry={tubeGeo} position={[0, 0.02, 0]}>
         <meshStandardMaterial
-          color={isPowered ? '#3b746b' : '#263e37'}
-          emissive={isPowered ? '#28695f' : '#07110e'}
-          emissiveIntensity={isPowered ? 0.72 : 0.04}
+          color={isPowered ? '#f59e0b' : '#78350f'}
+          emissive={isPowered ? '#d97706' : '#1e1005'}
+          emissiveIntensity={isPowered ? 0.8 : 0.05}
           metalness={0.9}
-          roughness={0.15}
+          roughness={0.2}
         />
       </mesh>
 
       {/* Jalur Paralel Tambahan (Data Bus 64-bit & Ground Lines) */}
-      {[-0.6, 0.6, -1.2, 1.2, -2.4, 2.4].map((offset, i) => (
-        <mesh key={`power-trace-${i}`} position={[offset, 0.02, 8]}>
-          <boxGeometry args={[0.026, 0.009, 22]} />
+      {[-2.5, -1.2, 0.0, 1.2, 2.5].map((offset, i) => (
+        <mesh key={`data-trace-${i}`} position={[offset, 0.02, 8]}>
+          <boxGeometry args={[0.024, 0.008, 16]} />
           <meshStandardMaterial
-            color={isPowered ? '#9a7547' : '#493a2b'}
-            emissive={isPowered ? '#9a5c2e' : '#000000'}
-            emissiveIntensity={isPowered ? 0.24 : 0.01}
+            color={isPowered ? '#34d399' : '#065f46'}
+            emissive={isPowered ? '#059669' : '#000000'}
+            emissiveIntensity={isPowered ? 0.3 : 0.01}
             metalness={0.8}
             roughness={0.2}
           />
@@ -202,9 +234,9 @@ function MainPowerTraces({ isPowered }) {
       {/* Percikan Listrik Bergerak (Moving Electric Arc) */}
       {isPowered && (
         <group ref={sparkRef}>
-          <pointLight color="#00ffff" intensity={4} distance={3.5} />
+          <pointLight color="#38bdf8" intensity={4.5} distance={3.5} />
           <mesh>
-            <sphereGeometry args={[0.2, 12, 12]} />
+            <sphereGeometry args={[0.22, 12, 12]} />
             <meshBasicMaterial color="#ffffff" />
           </mesh>
         </group>
